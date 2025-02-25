@@ -1,8 +1,8 @@
 <template>
   <van-form @submit="onSubmit">
     <van-cell-group inset>
-      <van-field v-model="fieldValue" :name="editUser.editName" :label="editUser.editName" :placeholder="editUser.editValue"
-        :rules="[{ required: true, message: `请填写${editUser.editName}` }]" />
+      <van-field v-model="editUser.editValue" :name="editUser.editName" :label="editUser.editName"
+        :placeholder="editUser.editValue" :rules="[{ required: true, message: `请填写${editUser.editName}` }]" />
     </van-cell-group>
     <div class="button-wrapper">
       <van-button plain block type="success" native-type="submit" class="button">提交</van-button>
@@ -13,16 +13,13 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
-import myAxios from "../request/request";
 import { showSuccessToast, showFailToast } from 'vant';
 import { useUserStore } from "../store/userStore";
 import { storeToRefs } from "pinia";
+import { buddyUserControllerApi } from "../services/request";
+import type { ApiResponseBuddyUser, BuddyUserUpdateRequest } from "../openapi";
 
 const route = useRoute();
-
-onMounted(() => {
-  
-});
 
 const editUser = ref(
   reactive({
@@ -36,26 +33,30 @@ const store = useUserStore();
 const { user, isCurrentUser } = storeToRefs(store);
 
 const onSubmit = async () => {
-  try {
-    const res = await myAxios.post("/buddyuser/updateBuddyUser/", {
-      "id": user.value.id,
-      "fieldKey": editUser.value.editKey,
-      "fieldValue": fieldValue.value
-    });
+
+  const req: BuddyUserUpdateRequest = {
+    id: user.value.id,
+    fieldKey: editUser.value.editKey,
+    fieldValue: editUser.value.editValue
+  };
+  const res = await buddyUserControllerApi.updateBuddyUser(req);
+
+  const { data, statusCodeValue }: ApiResponseBuddyUser = res.data;
+  if (statusCodeValue === 200 && data) {
     editUser.value.editValue = "";
     //isCurrentUser.value = false;
-    user.value = res.data.data;
+    user.value = data;
+    user.value.userId = data.id;
+    console.log(user.value);
     console.log(res);
     showSuccessToast('修改成功');
-
-  } catch (err) {
-    console.log(err);
+  } else {
     showFailToast('修改失败');
   }
-};
 
-const fieldKey = ref("");
-const fieldValue = ref("");
+}
+
+
 </script>
 
 <style lang="css" scoped>

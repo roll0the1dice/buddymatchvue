@@ -8,7 +8,7 @@
     <div style="margin-bottom: 16px">
       <van-button class="add-button" type="primary" icon="plus" @click="toAddTeam" />
       <div style="margin-bottom: 3px"></div>
-      <TeamCardList :teamList="teamList" :current-user="user"  :force-refresh="forceRefresh"  />
+      <TeamCardList :teamList="teamList" :current-user="user" :force-refresh="forceRefresh" />
       <van-empty description="后面没有啦" />
     </div>
   </div>
@@ -19,12 +19,12 @@
 import { useRouter } from "vue-router";
 import { onMounted, ref, type Ref } from "vue";
 import { showToast, Toast } from "vant";
-import myAxios from "../request/request";
-import type { TeamType } from "../models/user";
 import { teamStatusEnum } from '../constants/team';
 import { useUserStore } from "../store/userStore";
 import { storeToRefs } from "pinia";
 import TeamCardList from '../components/TeamCardList.vue'
+import type { Team } from "../openapi";
+import { teamControllerApi } from "../services/request";
 
 const active = ref('public')
 const router = useRouter();
@@ -55,7 +55,7 @@ const toAddTeam = () => {
   })
 }
 
-const teamList: Ref<TeamType[]> = ref<TeamType[]>([] as TeamType[]);
+const teamList: Ref<Team[]> = ref<Team[]>([] as Team[]);
 
 /**
  * 搜索队伍
@@ -64,16 +64,11 @@ const teamList: Ref<TeamType[]> = ref<TeamType[]>([] as TeamType[]);
  * @returns {Promise<void>}
  */
 const listTeam = async (status: number = 0) => {
-  const res = await myAxios.get("/team/getTeamByPage", {
-    params: {
-      status,
-    },
-  });
-  const { data } = res;
-  //console.log(data);
-  if (data.statusCodeValue === 200) {
+  const res = await teamControllerApi.getTeamByPage(0, 10, status);
+  const { data, statusCodeValue } = res.data;
+  if (statusCodeValue === 200 && data) {
     //console.log('teamList', res.data);
-    teamList.value = data.data.content;
+    teamList.value = data.content as Team[];
   } else {
     showToast('加载队伍失败，请刷新重试');
   }
@@ -90,7 +85,7 @@ const onSearch = (val: any) => {
 
 const forceRefresh = (status: number = 0) => {
   //refreshKey.value = refreshKey.value + 1;
-    // 查公开
+  // 查公开
   if (active.value === 'public') {
     listTeam(0);
   } else {

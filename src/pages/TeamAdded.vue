@@ -39,11 +39,11 @@
 <script setup lang="ts">
 import { showToast } from "vant";
 import { onMounted, ref, type Ref } from "vue";
-import myAxios from "../request/request";
-import type { TeamType } from "../models/user";
 import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useUserStore } from "../store/userStore";
+import { teamControllerApi } from "../services/request";
+import type { ApiResponseTeam, Team, TeamAddedRequest } from "../openapi";
 
 const teamName = ref("");
 const message = ref("");
@@ -70,11 +70,21 @@ onMounted(() => {
   minDate.value = currentDate.value;
   maxDate.value = new Date(currentDate.value);
   maxDate.value.setFullYear(currentDate.value.getFullYear() + 2);
-  postTeamData.value.expireTime = currentDate.value;
+  postTeamData.value.expireTime = currentDate.value.toLocaleDateString();
   postTeamData.value.userId = user.value.id;
   postTeamData.value.password = '';
+  postTeamData.value.teamStatus = "0";
   console.log("currentDateArr", currentDateArr.value);
 });
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);  // 将日期字符串转换为 Date 对象
+  const year = date.getFullYear();  // 获取年份
+  const month = String(date.getMonth() + 1).padStart(2, '0');  // 获取月份，注意月份是从0开始的，需要加1
+  const day = String(date.getDate()).padStart(2, '0');  // 获取日期
+
+  return `${year}-${month}-${day}`;  // 返回格式化后的日期字符串
+}
 
 const comfirm = (e: any) => {
   const { selectedValues } = e;
@@ -85,7 +95,7 @@ const comfirm = (e: any) => {
 
   const date = new Date(year, month, day);
   currentDate.value = date;
-  postTeamData.value.expireTime = date;
+  postTeamData.value.expireTime = date.toLocaleDateString();
   show.value = false;
 };
 
@@ -93,19 +103,24 @@ const cancel = () => {
   show.value = false;
 };
 
-const postTeamData: Ref<TeamType> = ref({} as TeamType);
+const postTeamData: Ref<Team> = ref({} as Team);
 
 const router = useRouter();
 
 const onSubmit = async () => {
-  const postData = {
-    ...postTeamData.value,
-    status: Number(postTeamData.value.teamStatus)
-  }
+  const postData: TeamAddedRequest = {
+    description: postTeamData.value.description,
+    maxNum: postTeamData.value.maxNum,
+    expireTime: formatDate(postTeamData.value.expireTime as string),
+    userId: postTeamData.value.userId,
+    teamStatus: postTeamData.value.teamStatus,
+    teamName: postTeamData.value.teamName,
+    password: postTeamData.value.password
+  };
   console.log('postData', postData);
   // todo 前端参数校验
-  const res = await myAxios.post("/team/add", postData);
-  const { data, statusCode, statusCodeValue } = res.data;
+  const res = await teamControllerApi.addTeam(postData);
+  const { data, statusCodeValue }: ApiResponseTeam = res.data;
   if (statusCodeValue === 200 && data) {
     showToast("添加成功");
     router.push({

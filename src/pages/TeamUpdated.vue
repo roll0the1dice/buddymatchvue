@@ -40,11 +40,11 @@
 <script setup lang="ts">
 import { showToast } from "vant";
 import { onMounted, ref, type Ref } from "vue";
-import myAxios from "../request/request";
-import type { TeamType } from "../models/user";
 import { useRouter, useRoute } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useUserStore } from "../store/userStore";
+import { teamControllerApi } from "../services/request";
+import type { Team } from "../openapi";
 
 const teamName = ref("");
 const message = ref("");
@@ -80,18 +80,13 @@ onMounted(async () => {
     return;
   }
 
-  myAxios.get(`/team/one/${id}`)
-    .then((res) => {
-      const { data, statusCodeValue } = res.data;
-      if (statusCodeValue === 200 && data) {
-        postTeamData.value = data;
-        postTeamData.value.teamStatus = String(data.teamStatus);
-        console.log('data', data);
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-    })
+  const res = await teamControllerApi.one1(Number(id));
+  const { data, statusCodeValue } = res.data;
+  if (statusCodeValue === 200 && data) {
+    postTeamData.value = data;
+    postTeamData.value.teamStatus = String(data.teamStatus);
+    console.log('data', data);
+  }
 
 });
 
@@ -104,7 +99,7 @@ const comfirm = (e: any) => {
 
   const date = new Date(year, month, day);
   currentDate.value = date;
-  postTeamData.value.expireTime = date;
+  postTeamData.value.expireTime = date.toDateString();
   show.value = false;
 };
 
@@ -112,18 +107,18 @@ const cancel = () => {
   show.value = false;
 };
 
-const postTeamData: Ref<TeamType> = ref({} as TeamType);
+const postTeamData: Ref<Team> = ref({} as Team);
 
 const router = useRouter();
 
 const onSubmit = async () => {
-  const postData = {
+  const team: Team = {
     ...postTeamData.value,
-    teamStatus: Number(postTeamData.value.teamStatus)
-  }
-  console.log('postData', postData);
+    teamStatus: postTeamData.value.teamStatus
+  } as Team;
+  console.log('postData', team);
   // todo 前端参数校验
-  const res = await myAxios.put(`/team/replaceTeam/${id}`, postData);
+  const res = await teamControllerApi.replaceTeam(Number(id), team); //myAxios.put(`/team/replaceTeam/${id}`, postData);
   const { data, statusCode, statusCodeValue } = res.data;
   if (statusCodeValue === 200 && data) {
     showToast("修改成功");
@@ -131,8 +126,6 @@ const onSubmit = async () => {
       path: '/team',
       replace: true,
     });
-  } else {
-    showToast('修改失败');
   }
 };
 </script>

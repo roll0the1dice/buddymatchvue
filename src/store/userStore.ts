@@ -1,19 +1,16 @@
 import { defineStore } from "pinia";
 import { ref, type Ref } from "vue";
 import type { TeamType, UserTagType, UserType } from "../models/user";
+import type { BuddyUser } from "../openapi";
 
 export const useUserStore = defineStore("loginUser", () => {
   const activeIds: Ref<UserTagType[]> = ref([]);
 
-  const mockUser: UserType = {
+  const mockUser: BuddyUser = {
     id: 1,
     tagName: '["python"]',
     userId: 0,
     parentId: 0,
-    isParent: 0,
-    createTime: new Date(),
-    updateTime: new Date(),
-    isDelete: 0,
     displayName: "Brian",
     personalBio:
       "Hello, my name is [Your Name]. I have [Number] years of experience in [Your Field].",
@@ -22,7 +19,7 @@ export const useUserStore = defineStore("loginUser", () => {
     avatar: "",
   };
 
-  const user: Ref<UserType> = ref<UserType>({} as UserType);
+  const user: Ref<BuddyUser> = ref<BuddyUser>({} as BuddyUser);
 
   const isLogin = ref(false);
 
